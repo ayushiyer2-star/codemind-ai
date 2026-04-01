@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeMind AI – Coding Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--panel:#0f1117;--border:#1e2330;--glow:#2a3a5c;
+  --accent:#00d4ff;--accent2:#7c3aed;--green:#10b981;
+  --text:#e2e8f0;--dim:#64748b;--mid:#94a3b8;
+  --user-bg:#1a1f2e;--ai-bg:#0f1420;--code-bg:#060810;
+}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(0,212,255,.05) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 100%,rgba(124,58,237,.06) 0%,transparent 55%)}
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;border-bottom:1px solid var(--border);
+  background:rgba(10,12,16,.97);backdrop-filter:blur(12px);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase}
+.hright{display:flex;align-items:center;gap:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 7px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.hlabel{font-size:10px;color:var(--green);letter-spacing:1px}
+.web-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:20px;border:1px solid rgba(0,212,255,.25);
+  background:rgba(0,212,255,.08);font-size:11px;color:var(--accent);cursor:pointer;transition:.2s}
+.web-pill.off{border-color:var(--border);background:transparent;color:var(--dim)}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.web-pill.off .pill-dot{background:var(--dim)}
+.key-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 18px;border-bottom:1px solid rgba(251,191,36,.15);
+  background:rgba(251,191,36,.04);flex-shrink:0}
+.key-bar label{font-size:10px;color:#fbbf24;white-space:nowrap}
+.key-bar input{flex:1;min-width:180px;max-width:360px;background:rgba(0,0,0,.4);
+  border:1px solid rgba(251,191,36,.2);border-radius:5px;padding:4px 9px;
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none}
+.key-bar input:focus{border-color:rgba(251,191,36,.55)}
+.key-btn{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);
+  color:#fbbf24;border-radius:5px;padding:4px 10px;font-size:11px;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;white-space:nowrap;transition:.2s}
+.key-btn:hover{background:rgba(251,191,36,.2)}
+.key-link{font-size:10px;color:var(--accent);text-decoration:none}
+.key-link:hover{text-decoration:underline}
+.key-ok{font-size:10px;color:var(--green);display:none}
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;border-right:1px solid var(--border);padding:12px 10px;
+  display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex-shrink:0;
+  background:rgba(8,10,14,.6)}
+.sb-title{font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;padding:0 4px;margin:4px 0 2px}
+.sb-btn{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;
+  border:1px solid transparent;background:transparent;color:var(--mid);
+  font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;
+  transition:.15s;text-align:left;width:100%}
+.sb-btn:hover{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--text)}
+.new-btn{justify-content:center;border-color:var(--glow)!important;
+  background:rgba(0,212,255,.05)!important;color:var(--accent)!important;margin-bottom:4px}
+.new-btn:hover{background:rgba(0,212,255,.12)!important;border-color:var(--accent)!important}
+.divider{height:1px;background:var(--border);margin:2px 0}
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.msgs{flex:1;overflow-y:auto;padding:20px 0;scroll-behavior:smooth}
+.msgs::-webkit-scrollbar{width:3px}
+.msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.msg{display:flex;gap:12px;padding:12px 20px;max-width:860px;margin:0 auto;width:100%;animation:up .25s ease}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.av{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px}
+.av.ai{background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(124,58,237,.18));border:1px solid rgba(0,212,255,.28)}
+.av.user{background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.28)}
+.bub{max-width:calc(100% - 46px);border-radius:11px;padding:11px 14px;font-size:12.5px;line-height:1.75;border:1px solid var(--border)}
+.msg.user .bub{background:var(--user-bg);border-color:rgba(124,58,237,.2)}
+.msg.ai .bub{background:var(--ai-bg);width:100%}
+.blabel{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.bub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;background:rgba(0,212,255,.07);
+  border:1px solid rgba(0,212,255,.18);border-radius:5px;padding:2px 8px;
+  font-size:9px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.5px;transition:.2s;opacity:0}
+.bub:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:rgba(0,212,255,.18);border-color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green);background:rgba(16,185,129,.1)}
+.code-wrap{position:relative;margin:8px 0}
+.code-copy{position:absolute;top:7px;right:36px;background:rgba(0,212,255,.08);
+  border:1px solid rgba(0,212,255,.18);border-radius:4px;padding:2px 7px;
+  font-size:9px;color:var(--accent);cursor:pointer;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.5px;transition:.2s;opacity:0;z-index:2}
+.code-wrap:hover .code-copy{opacity:1}
+.code-copy:hover{background:rgba(0,212,255,.18)}
+.code-copy.copied{color:var(--green);border-color:var(--green);background:rgba(16,185,129,.1)}
+.code-wrap pre{margin:0}
+.wtag{display:inline-block;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);
+  border-radius:3px;padding:0 5px;font-size:9px;color:var(--accent);margin-left:5px;vertical-align:middle}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:7px;
+  padding:12px;margin:8px 0;overflow-x:auto;font-size:11.5px;line-height:1.6;position:relative}
+pre::before{content:attr(data-lang);position:absolute;top:7px;right:10px;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+code{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:11.5px}
+pre code{color:#c9d1d9}
+.ic{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);border-radius:3px;padding:1px 5px;font-size:11px;color:var(--accent)}
+strong{color:var(--accent);font-weight:600}
+.src-box{margin-top:8px;padding:8px 10px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.12);border-radius:7px;font-size:10px}
+.src-title{color:var(--accent);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.src-item{color:var(--mid);padding:2px 0}
+.welcome{max-width:560px;margin:30px auto;padding:0 20px;text-align:center}
+.wico{width:56px;height:56px;background:linear-gradient(135deg,rgba(0,212,255,.13),rgba(124,58,237,.13));
+  border:1px solid rgba(0,212,255,.28);border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:26px;margin:0 auto 16px;box-shadow:0 0 28px rgba(0,212,255,.1)}
+.welcome h2{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.welcome p{color:var(--dim);font-size:12px;line-height:1.7;margin-bottom:22px}
+.suggs{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sugg{padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--panel);
+  cursor:pointer;text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--mid);transition:.18s;display:flex;align-items:flex-start;gap:7px}
+.sugg:hover{border-color:var(--accent);background:rgba(0,212,255,.06);color:var(--text);transform:translateY(-1px)}
+.si{font-size:14px;flex-shrink:0}
+.st{line-height:1.5}
+.think{display:flex;align-items:center;gap:6px;padding:8px 14px;color:var(--dim);font-size:11px}
+.dots span{display:inline-block;width:4px;height:4px;background:var(--accent);border-radius:50%;margin:0 1px;animation:bo 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bo{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-4px);opacity:1}}
+.inp-area{padding:14px 20px 16px;border-top:1px solid var(--border);background:rgba(10,12,16,.97);backdrop-filter:blur(10px);flex-shrink:0}
+.inp-row{display:flex;gap:8px;align-items:flex-end;max-width:860px;margin:0 auto}
+.inp-wrap{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:.2s}
+.inp-wrap:focus-within{border-color:rgba(0,212,255,.38);box-shadow:0 0 0 2px rgba(0,212,255,.05)}
+.toolbar{display:flex;gap:3px;padding:6px 10px 3px;border-bottom:1px solid var(--border)}
+.tb{background:transparent;border:none;color:var(--dim);cursor:pointer;padding:3px 6px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;transition:.15s}
+.tb:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.tb.on{color:var(--accent)}
+textarea{width:100%;background:transparent;border:none;outline:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:10px 12px;resize:none;min-height:44px;max-height:150px;line-height:1.6}
+textarea::placeholder{color:var(--dim)}
+.send{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:.18s;flex-shrink:0;box-shadow:0 0 14px rgba(0,212,255,.2)}
+.send:hover{transform:scale(1.06);box-shadow:0 0 22px rgba(0,212,255,.32)}
+.send:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.hint{text-align:center;font-size:9px;color:var(--dim);margin-top:8px;letter-spacing:.5px}
+.err{color:#f87171}
+a{color:var(--accent)}
+
+/* ── PRO BADGE in header ── */
+.pro-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+  border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:.2s}
+.pro-badge.free{background:rgba(100,116,139,.12);border:1px solid rgba(100,116,139,.25);color:var(--mid)}
+.pro-badge.free:hover{border-color:var(--accent);color:var(--accent)}
+.pro-badge.pro{background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(245,158,11,.1));
+  border:1px solid rgba(251,191,36,.35);color:#fbbf24;box-shadow:0 0 10px rgba(251,191,36,.1)}
+
+/* ── USAGE BAR ── */
+.usage-bar-wrap{padding:5px 18px;background:rgba(10,12,16,.8);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0}
+.usage-label{font-size:10px;color:var(--dim);white-space:nowrap}
+.usage-track{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;max-width:200px}
+.usage-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:.4s}
+.usage-fill.danger{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.usage-count{font-size:10px;color:var(--mid);white-space:nowrap}
+.upgrade-link{font-size:10px;color:#fbbf24;cursor:pointer;white-space:nowrap;
+  background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);
+  border-radius:4px;padding:2px 8px;transition:.2s}
+.upgrade-link:hover{background:rgba(251,191,36,.2)}
+
+/* ── UPGRADE MODAL OVERLAY ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fadein .2s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{background:#0e1118;border:1px solid var(--border);border-radius:16px;
+  max-width:480px;width:100%;padding:32px;position:relative;
+  box-shadow:0 0 60px rgba(0,212,255,.08),0 20px 60px rgba(0,0,0,.6)}
+.modal-close{position:absolute;top:14px;right:16px;background:transparent;border:none;
+  color:var(--dim);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:5px;transition:.2s}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.modal h2{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;
+  background:linear-gradient(90deg,#fbbf24,#f59e0b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--dim);margin-bottom:24px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.plan{border:1px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:.2s;position:relative}
+.plan:hover{border-color:var(--border-glow)}
+.plan.highlight{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.04)}
+.plan-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(90deg,#fbbf24,#f59e0b);color:#000;
+  font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 10px;border-radius:10px}
+.plan-name{font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.plan-price{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--text);margin-bottom:2px}
+.plan-price span{font-size:13px;font-weight:400;color:var(--dim)}
+.plan-feats{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:5px}
+.plan-feats li{font-size:11px;color:var(--mid);display:flex;align-items:flex-start;gap:6px}
+.plan-feats li::before{content:'✓';color:var(--green);flex-shrink:0}
+.plan-feats li.no{color:var(--dim)}
+.plan-feats li.no::before{content:'✕';color:var(--dim)}
+.pay-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;font-family:'Syne',sans-serif;
+  font-weight:700;font-size:14px;letter-spacing:.5px;transition:.2s;margin-bottom:10px}
+.pay-btn.stripe{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000}
+.pay-btn.stripe:hover{box-shadow:0 0 20px rgba(251,191,36,.3);transform:translateY(-1px)}
+.pay-btn.demo{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);color:var(--accent)}
+.pay-btn.demo:hover{background:rgba(0,212,255,.15)}
+.modal-note{font-size:10px;color:var(--dim);text-align:center;line-height:1.6}
+.modal-note a{color:var(--accent)}
+.stripe-logo{display:flex;align-items:center;justify-content:center;gap:5px;
+  font-size:10px;color:var(--dim);margin-top:8px}
+
+/* ── AFFILIATE BANNER ── */
+.aff-banner{display:flex;align-items:center;gap:10px;padding:8px 18px;
+  background:linear-gradient(90deg,rgba(124,58,237,.08),rgba(0,212,255,.06));
+  border-bottom:1px solid rgba(124,58,237,.15);flex-shrink:0;flex-wrap:wrap}
+.aff-text{font-size:10px;color:var(--mid);flex:1}
+.aff-text strong{color:var(--text)}
+.aff-btn{font-size:10px;padding:4px 12px;border-radius:5px;border:1px solid rgba(124,58,237,.3);
+  background:rgba(124,58,237,.1);color:#a78bfa;cursor:pointer;white-space:nowrap;
+  font-family:'JetBrains Mono',monospace;transition:.2s;text-decoration:none}
+.aff-btn:hover{background:rgba(124,58,237,.2);border-color:#7c3aed}
+.aff-dismiss{background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:2px 4px}
+
+/* ── PAYWALL BLUR on msgs ── */
+.msg.blurred .bub{filter:blur(4px);user-select:none;pointer-events:none;position:relative}
+.paywall-overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;z-index:5}
+.paywall-overlay button{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;transition:.2s}
+.paywall-overlay button:hover{box-shadow:0 0 16px rgba(251,191,36,.4)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">CodeMind</div>
+      <div class="logo-sub">AI Dev Assistant</div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="dot"></div>
+    <span class="hlabel">ONLINE</span>
+    <div class="web-pill" id="webPill" onclick="toggleWeb()">
+      <div class="pill-dot"></div>
+      <span id="webTxt">🌐 Web ON</span>
+    </div>
+    <div class="pro-badge free" id="proBadge" onclick="openModal()">⚡ FREE</div>
+  </div>
+</header>
+
+<div class="key-bar">
+  <label>🔑 API Key:</label>
+  <input type="password" id="keyIn" placeholder="sk-ant-api03-… paste your Anthropic key here"/>
+  <button class="key-btn" onclick="saveKey()">Save</button>
+  <span class="key-ok" id="keyOk">✅ Saved!</span>
+  <a class="key-link" href="https://console.anthropic.com/settings/keys" target="_blank">Get free key →</a>
+</div>
+
+<!-- Usage bar -->
+<div class="usage-bar-wrap" id="usageBar">
+  <span class="usage-label">Free messages:</span>
+  <div class="usage-track"><div class="usage-fill" id="usageFill" style="width:0%"></div></div>
+  <span class="usage-count" id="usageCount">0 / 5 used</span>
+  <span class="upgrade-link" onclick="openModal()">🚀 Upgrade to Pro</span>
+</div>
+
+<!-- Affiliate banner -->
+<div class="aff-banner" id="affBanner">
+  <span class="aff-text">💡 <strong>Build faster</strong> — Get your own Anthropic API key and unlock unlimited CodeMind with <strong>$5 free credits</strong></span>
+  <a class="aff-btn" href="https://console.anthropic.com" target="_blank">Get Free Credits →</a>
+  <button class="aff-dismiss" onclick="document.getElementById('affBanner').style.display='none'" title="Dismiss">×</button>
+</div>
+
+<!-- Upgrade Modal -->
+<div class="modal-bg" id="modalBg" style="display:none" onclick="bgClose(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>🚀 Upgrade to Pro</h2>
+    <p class="modal-sub">Unlock unlimited messages, priority speed, and all Pro features.</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <span>/ mo</span></div>
+        <ul class="plan-feats">
+          <li>5 messages / day</li>
+          <li>Web search</li>
+          <li class="no">Unlimited chats</li>
+          <li class="no">Priority speed</li>
+          <li class="no">Code export</li>
+          <li class="no">Chat history</li>
+        </ul>
+      </div>
+      <div class="plan highlight">
+        <div class="plan-badge">MOST POPULAR</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$9 <span>/ mo</span></div>
+        <ul class="plan-feats">
+          <li>Unlimited messages</li>
+          <li>Web search</li>
+          <li>Unlimited chats</li>
+          <li>Priority speed</li>
+          <li>Code export</li>
+          <li>Chat history</li>
+        </ul>
+      </div>
+    </div>
+    <button class="pay-btn stripe" onclick="goStripe()">💳 Subscribe with Stripe — $9/mo</button>
+    <button class="pay-btn demo" onclick="activateDemoMode()">🔑 I have my own API Key (use free)</button>
+    <p class="modal-note">
+      Secure payment via Stripe. Cancel anytime.<br>
+      Or <a href="https://console.anthropic.com" target="_blank">get your own API key</a> for pay-as-you-go pricing.
+    </p>
+    <div class="stripe-logo">🔒 Powered by <strong>Stripe</strong> — your card is never stored here</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <button class="sb-btn new-btn" onclick="newChat()">＋ New Chat</button>
+    <div class="sb-title">Quick Tools</div>
+    <button class="sb-btn" onclick="snippet('Debug this code for me:\n\n')">🐛 Debug Code</button>
+    <button class="sb-btn" onclick="snippet('Please review this code:\n\n')">🔍 Code Review</button>
+    <button class="sb-btn" onclick="snippet('Explain how this code works:\n\n')">📖 Explain Code</button>
+    <button class="sb-btn" onclick="snippet('Optimize this for performance:\n\n')">⚡ Optimize</button>
+    <button class="sb-btn" onclick="snippet('Write unit tests for:\n\n')">🧪 Write Tests</button>
+    <div class="divider"></div>
+    <div class="sb-title">Web & Frontend</div>
+    <button class="sb-btn" onclick="snippet('Help me with this JavaScript:\n\n')">☕ JavaScript</button>
+    <button class="sb-btn" onclick="snippet('Help me with this TypeScript:\n\n')">🔷 TypeScript</button>
+    <button class="sb-btn" onclick="snippet('Help me with this React component:\n\n')">⚛️ React</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Vue.js code:\n\n')">💚 Vue.js</button>
+    <button class="sb-btn" onclick="snippet('Help me with this HTML/CSS:\n\n')">🎨 HTML / CSS</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Next.js code:\n\n')">▲ Next.js</button>
+    <div class="divider"></div>
+    <div class="sb-title">Backend & Systems</div>
+    <button class="sb-btn" onclick="snippet('Help me with this Python code:\n\n')">🐍 Python</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Node.js code:\n\n')">🟩 Node.js</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Java code:\n\n')">☕ Java</button>
+    <button class="sb-btn" onclick="snippet('Help me with this C# code:\n\n')">🔵 C#</button>
+    <button class="sb-btn" onclick="snippet('Help me with this C++ code:\n\n')">⚙️ C++</button>
+    <button class="sb-btn" onclick="snippet('Help me with this C code:\n\n')">🔩 C</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Go code:\n\n')">🐹 Go</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Rust code:\n\n')">🦀 Rust</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Ruby code:\n\n')">💎 Ruby</button>
+    <button class="sb-btn" onclick="snippet('Help me with this PHP code:\n\n')">🐘 PHP</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Swift code:\n\n')">🍎 Swift</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Kotlin code:\n\n')">🟣 Kotlin</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Dart/Flutter code:\n\n')">🎯 Dart / Flutter</button>
+    <div class="divider"></div>
+    <div class="sb-title">Data & DevOps</div>
+    <button class="sb-btn" onclick="snippet('Help me with this SQL query:\n\n')">🗄️ SQL</button>
+    <button class="sb-btn" onclick="snippet('Help me with this R code:\n\n')">📊 R</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Scala code:\n\n')">⚡ Scala</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Bash/Shell script:\n\n')">🐚 Bash / Shell</button>
+    <button class="sb-btn" onclick="snippet('Help me with this PowerShell script:\n\n')">🪟 PowerShell</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Dockerfile/Docker Compose:\n\n')">🐳 Docker</button>
+    <button class="sb-btn" onclick="snippet('Help me with this YAML/Kubernetes config:\n\n')">☸️ Kubernetes</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Terraform code:\n\n')">🏗️ Terraform</button>
+    <div class="divider"></div>
+    <div class="sb-title">Other Languages</div>
+    <button class="sb-btn" onclick="snippet('Help me with this Haskell code:\n\n')">λ Haskell</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Elixir code:\n\n')">💧 Elixir</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Lua code:\n\n')">🌙 Lua</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Perl code:\n\n')">🐪 Perl</button>
+    <button class="sb-btn" onclick="snippet('Help me with this Assembly code:\n\n')">🔧 Assembly</button>
+  </div>
+
+  <div class="chat">
+    <div class="msgs" id="msgs">
+      <div class="welcome" id="welcome">
+        <div class="wico">⚡</div>
+        <h2>CodeMind AI</h2>
+        <p>Paste your Anthropic API key above, then ask any coding question.<br>Web search is on by default for up-to-date docs and answers.</p>
+        <div class="suggs">
+          <div class="sugg" onclick="quickSend(this)"><span class="si">🐛</span><span class="st">Debug my React useEffect infinite loop</span></div>
+          <div class="sugg" onclick="quickSend(this)"><span class="si">⚡</span><span class="st">Optimize a slow SQL query</span></div>
+          <div class="sugg" onclick="quickSend(this)"><span class="si">🌐</span><span class="st">Latest Python 3.13 features?</span></div>
+          <div class="sugg" onclick="quickSend(this)"><span class="si">🏗️</span><span class="st">Microservices vs monolithic architecture</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inp-area">
+      <div class="inp-row">
+        <div class="inp-wrap">
+          <div class="toolbar">
+            <button class="tb on" id="webTb" onclick="toggleWeb()">🌐 Web</button>
+            <button class="tb" onclick="codeMode(this)">{ } Code</button>
+            <button class="tb" onclick="newChat()">🗑 Clear</button>
+          </div>
+          <textarea id="inp" placeholder="Ask anything about code… (Enter to send, Shift+Enter for newline)"
+            rows="1" oninput="resize(this)" onkeydown="kd(event)"></textarea>
+        </div>
+        <button class="send" id="sendBtn" onclick="sendMsg()">➤</button>
+      </div>
+      <div class="hint">Powered by Claude Sonnet · Web search · Enter to send</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let history = [];
+let webOn = true;
+let busy = false;
+
+// ── MONETIZATION CONFIG ──
+// 🔧 Replace this with your real Stripe payment link from dashboard.stripe.com
+const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/YOUR_PAYMENT_LINK';
+const FREE_LIMIT = 5; // free messages per day
+
+// ── PLAN STATE ──
+let isPro = false;
+let msgUsed = 0;
+
+// ── BOOT ──
+window.onload = () => {
+  const k = localStorage.getItem('cm_key');
+  if (k) document.getElementById('keyIn').value = k;
+
+  // Load pro status (in real app, verify with your backend)
+  isPro = localStorage.getItem('cm_pro') === 'true';
+
+  // Load daily usage (reset if new day)
+  const today = new Date().toDateString();
+  const savedDay = localStorage.getItem('cm_day');
+  if (savedDay !== today) {
+    localStorage.setItem('cm_day', today);
+    localStorage.setItem('cm_used', '0');
+  }
+  msgUsed = parseInt(localStorage.getItem('cm_used') || '0');
+
+  updateUsageUI();
+  if (isPro) activateProUI();
+};
+
+function updateUsageUI() {
+  if (isPro) {
+    document.getElementById('usageBar').style.display = 'none';
+    return;
+  }
+  const pct = Math.min((msgUsed / FREE_LIMIT) * 100, 100);
+  document.getElementById('usageFill').style.width = pct + '%';
+  document.getElementById('usageCount').textContent = `${msgUsed} / ${FREE_LIMIT} used today`;
+  if (pct >= 80) document.getElementById('usageFill').classList.add('danger');
+  else document.getElementById('usageFill').classList.remove('danger');
+}
+
+function checkLimit() {
+  if (isPro) return true;
+  if (msgUsed >= FREE_LIMIT) {
+    openModal('limit');
+    return false;
+  }
+  return true;
+}
+
+function incrementUsage() {
+  msgUsed++;
+  localStorage.setItem('cm_used', msgUsed.toString());
+  updateUsageUI();
+}
+
+// ── MODAL ──
+function openModal(reason) {
+  const sub = document.querySelector('.modal-sub');
+  if (reason === 'limit') {
+    sub.textContent = `You've used all ${FREE_LIMIT} free messages for today. Upgrade to Pro for unlimited access.`;
+  } else {
+    sub.textContent = 'Unlock unlimited messages, priority speed, and all Pro features.';
+  }
+  document.getElementById('modalBg').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalBg').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function bgClose(e) {
+  if (e.target.id === 'modalBg') closeModal();
+}
+
+// ── STRIPE ──
+function goStripe() {
+  if (STRIPE_PAYMENT_LINK.includes('YOUR_PAYMENT_LINK')) {
+    alert('💡 To activate Stripe payments:\n\n1. Go to dashboard.stripe.com\n2. Create a Payment Link for $9/mo\n3. Replace STRIPE_PAYMENT_LINK in this file with your link\n\nFor now, activating demo Pro mode.');
+    activateDemoMode();
+    return;
+  }
+  window.open(STRIPE_PAYMENT_LINK, '_blank');
+  // After payment, user returns and you verify via webhook + set localStorage
+  // For demo, activate after 3 seconds
+  setTimeout(() => activateProUI(), 3000);
+}
+
+function activateDemoMode() {
+  // If they have their own API key, remove the limit
+  const key = getKey();
+  if (key) {
+    isPro = true;
+    localStorage.setItem('cm_pro', 'true');
+    activateProUI();
+    closeModal();
+  } else {
+    alert('Please paste your own Anthropic API key in the yellow bar first.');
+    closeModal();
+  }
+}
+
+function activateProUI() {
+  isPro = true;
+  const badge = document.getElementById('proBadge');
+  badge.textContent = '⭐ PRO';
+  badge.className = 'pro-badge pro';
+  badge.onclick = null;
+  badge.title = 'Pro plan active';
+  document.getElementById('usageBar').style.display = 'none';
+  document.getElementById('affBanner').style.display = 'none';
+  closeModal();
+}
+
+// Load saved key
+function saveKey() {
+  const v = document.getElementById('keyIn').value.trim();
+  if (!v) { alert('Please paste your API key first.'); return; }
+  if (!v.startsWith('sk-')) { alert('Key should start with "sk-ant-…"\nGet one at console.anthropic.com'); return; }
+  localStorage.setItem('cm_key', v);
+  const el = document.getElementById('keyOk');
+  el.style.display = 'inline';
+  setTimeout(() => el.style.display = 'none', 2500);
+  // If they paste their own key, treat as pro (no message limit)
+  isPro = true;
+  localStorage.setItem('cm_pro', 'true');
+  activateProUI();
+}
+
+function getKey() {
+  return document.getElementById('keyIn').value.trim() || localStorage.getItem('cm_key') || '';
+}
+
+function toggleWeb() {
+  webOn = !webOn;
+  document.getElementById('webPill').classList.toggle('off', !webOn);
+  document.getElementById('webTxt').textContent = webOn ? '🌐 Web ON' : '🌐 Web OFF';
+  document.getElementById('webTb').classList.toggle('on', webOn);
+}
+
+function codeMode(btn) {
+  btn.classList.toggle('on');
+  document.getElementById('inp').placeholder = btn.classList.contains('on')
+    ? 'Paste your code here…' : 'Ask anything about code…';
+}
+
+function snippet(t) { const ta=document.getElementById('inp'); ta.value=t; ta.focus(); resize(ta); }
+function quickSend(el) { document.getElementById('inp').value=el.querySelector('.st').textContent; sendMsg(); }
+
+function resize(ta) { ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,150)+'px'; }
+function kd(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+
+function newChat() {
+  history=[];
+  document.getElementById('msgs').innerHTML='';
+  showWelcome();
+}
+
+function showWelcome() {
+  document.getElementById('msgs').innerHTML=`
+    <div class="welcome" id="welcome">
+      <div class="wico">⚡</div><h2>CodeMind AI</h2>
+      <p>Paste your API key above and start coding.</p>
+      <div class="suggs">
+        <div class="sugg" onclick="quickSend(this)"><span class="si">🐛</span><span class="st">Debug my React useEffect infinite loop</span></div>
+        <div class="sugg" onclick="quickSend(this)"><span class="si">⚡</span><span class="st">Optimize a slow SQL query</span></div>
+        <div class="sugg" onclick="quickSend(this)"><span class="si">🌐</span><span class="st">Latest Python 3.13 features?</span></div>
+        <div class="sugg" onclick="quickSend(this)"><span class="si">🏗️</span><span class="st">Microservices vs monolithic</span></div>
+      </div>
+    </div>`;
+}
+
+function addMsg(role, html, sources, rawText) {
+  const w=document.getElementById('welcome'); if(w) w.remove();
+  const c=document.getElementById('msgs');
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  const webBadge = (role==='ai' && webOn) ? '<span class="wtag">WEB</span>' : '';
+  const srcHtml = (sources&&sources.length)
+    ? `<div class="src-box"><div class="src-title">🌐 Web searched</div>${sources.map(s=>`<div class="src-item">↗ ${s}</div>`).join('')}</div>` : '';
+  const copyBtn = (role==='ai')
+    ? `<button class="copy-btn" onclick="copyMsg(this)">⎘ Copy</button>` : '';
+  d.innerHTML=`
+    <div class="av ${role}">${role==='user'?'👤':'⚡'}</div>
+    <div class="bub" ${rawText?`data-raw="${esc(rawText)}"`:''}>
+      <div class="bub-header">
+        <span class="blabel">${role==='user'?'YOU':'CODEMIND'}${webBadge}</span>
+        ${copyBtn}
+      </div>
+      ${html}${srcHtml}
+    </div>`;
+  c.appendChild(d);
+  // wrap code blocks with copy buttons
+  if (role==='ai') {
+    d.querySelectorAll('pre').forEach(pre => {
+      const wrap=document.createElement('div');
+      wrap.className='code-wrap';
+      const code=pre.querySelector('code');
+      const rawCode=code ? code.textContent : pre.textContent;
+      pre.parentNode.insertBefore(wrap,pre);
+      wrap.appendChild(pre);
+      const cb=document.createElement('button');
+      cb.className='code-copy';
+      cb.textContent='⎘ Copy';
+      cb.onclick=()=>copyText(rawCode,cb);
+      wrap.appendChild(cb);
+    });
+  }
+  c.scrollTop=c.scrollHeight;
+}
+
+function copyMsg(btn) {
+  const bub=btn.closest('.bub');
+  const raw=bub.getAttribute('data-raw');
+  copyText(raw||bub.innerText, btn);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig=btn.textContent;
+    btn.textContent='✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent=orig; btn.classList.remove('copied'); },2000);
+  }).catch(()=>{
+    // fallback for older browsers
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig=btn.textContent;
+    btn.textContent='✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent=orig; btn.classList.remove('copied'); },2000);
+  });
+}
+
+function showThinking() {
+  const c=document.getElementById('msgs');
+  const d=document.createElement('div');
+  d.className='msg ai'; d.id='thinking';
+  d.innerHTML=`<div class="av ai">⚡</div><div class="bub"><div class="think"><div class="dots"><span></span><span></span><span></span></div><span>${webOn?'Searching & thinking…':'Thinking…'}</span></div></div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function rmThinking(){ const t=document.getElementById('thinking'); if(t) t.remove(); }
+
+function fmt(text) {
+  text=text.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>
+    `<pre data-lang="${lang||'code'}"><code>${esc(code.trim())}</code></pre>`);
+  text=text.replace(/`([^`\n]+)`/g,'<span class="ic">$1</span>');
+  text=text.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  text=text.replace(/^#{1,3} (.+)$/gm,'<strong>$1</strong>');
+  text=text.replace(/\n/g,'<br>');
+  return text;
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function sendMsg() {
+  if (busy) return;
+  if (!checkLimit()) return;   // ← freemium gate
+
+  const key = getKey();
+  if (!key) {
+    alert('⚠️  No API key!\n\n1. Go to console.anthropic.com\n2. Sign up free\n3. Create an API key\n4. Paste it in the yellow bar above → click Save');
+    return;
+  }
+
+  const ta=document.getElementById('inp');
+  const text=ta.value.trim();
+  if (!text) return;
+
+  ta.value=''; resize(ta);
+  busy=true;
+  document.getElementById('sendBtn').disabled=true;
+  incrementUsage();   // ← count the message
+
+  addMsg('user', fmt(text));
+  history.push({role:'user', content:text});
+  showThinking();
+
+  try {
+    const headers={
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    };
+    if (webOn) headers['anthropic-beta']='web-search-2025-03-05';
+
+    const bodyObj={
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1500,
+      system:`You are CodeMind, a world-class AI coding assistant. Help developers debug, review, explain, and write code across all languages and frameworks.
+- ALWAYS wrap code in triple-backtick blocks with the language name
+- Use **bold** for important terms
+- Be precise and practical
+- For bugs: explain root cause then show the fix
+- For reviews: list issues then show improvements
+${webOn?'- Use web search for latest docs, changelogs, and current best practices':''}`,
+      messages: history
+    };
+    if (webOn) bodyObj.tools=[{type:'web_search_20250305',name:'web_search'}];
+
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers, body:JSON.stringify(bodyObj)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      rmThinking();
+      const msg = data?.error?.message || `HTTP ${res.status}`;
+      addMsg('ai',`<span class="err">❌ API Error: ${esc(msg)}</span><br><br>
+        Common fixes:<br>
+        • Check your API key is correct<br>
+        • Add credits at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>
+        • Make sure the key starts with <span class="ic">sk-ant-</span>`);
+    } else {
+      let reply='';
+      const sources=[];
+      for (const b of (data.content||[])) {
+        if (b.type==='text') reply+=b.text;
+        if (b.type==='tool_use'&&b.name==='web_search'&&b.input?.query)
+          sources.push(b.input.query);
+      }
+      if (!reply) reply='(Empty response — please try again)';
+      rmThinking();
+      addMsg('ai', fmt(reply), sources, reply);
+      history.push({role:'assistant',content:reply});
+    }
+
+  } catch(err) {
+    rmThinking();
+    const cors = err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
+    if (cors) {
+      addMsg('ai',`<span class="err">❌ Browser blocked the request (CORS policy)</span><br><br>
+        <strong>You must serve this file over HTTP, not open it directly.</strong><br><br>
+        Run one of these in the folder containing this file:<br>
+        <pre data-lang="bash"><code># Python 3 (easiest — no install needed)
+python3 -m http.server 8080
+# Then open: http://localhost:8080
+
+# Node.js
+npx serve .
+
+# VS Code
+# Install "Live Server" extension → right-click file → Open with Live Server</code></pre>
+        Or deploy to <a href="https://netlify.com" target="_blank">Netlify</a> / <a href="https://vercel.com" target="_blank">Vercel</a> for public hosting.`);
+    } else {
+      addMsg('ai',`<span class="err">❌ ${esc(err.message)}</span>`);
+    }
+  }
+
+  busy=false;
+  document.getElementById('sendBtn').disabled=false;
+  ta.focus();
+}
+</script>
+</body>
+</html>
